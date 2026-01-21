@@ -81,5 +81,18 @@ export const generateNetplanYaml = (osId, interfaces) => {
     if (Object.keys(network.ethernets).length === 0) delete network.ethernets;
     if (Object.keys(network.wifis).length === 0) delete network.wifis;
 
-    return yaml.dump({ network }, { indent: 2, noRefs: true });
+    const yamlContent = yaml.dump({ network }, { indent: 2, noRefs: true });
+
+    const dateStr = new Date().toLocaleString('en-US', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+    }).replace(/(\d+)\/(\d+)\/(\d+),/, '$3-$1-$2');
+
+    return `# ${osConfig.name} Netplan Configuration
+# Generated on Rafelly's tools
+# Date: ${dateStr}
+# Save this file as /etc/netplan/00-installer-config.yaml
+
+${yamlContent}`;
 };
