@@ -33,22 +33,26 @@ export const generateNetplanYaml = (osId, interfaces) => {
         if (iface.dhcp6) config.dhcp6 = true;
 
         // Static Addresses
-        const validAddresses = iface.addresses.filter(a => a.trim() !== '');
-        if (validAddresses.length > 0) {
-            config.addresses = validAddresses;
-        }
+        // User requested to remove IP addresses if DHCP is enabled to prevent conflicts.
+        // The UI also disables these inputs when DHCPv4 is active.
+        if (!iface.dhcp4) {
+            const validAddresses = iface.addresses.filter(a => a.trim() !== '');
+            if (validAddresses.length > 0) {
+                config.addresses = validAddresses;
+            }
 
-        // Gateway / Routes
-        if (iface.gateway && iface.gateway.trim() !== '') {
-            if (isModern) {
-                config.routes = [
-                    {
-                        to: 'default',
-                        via: iface.gateway
-                    }
-                ];
-            } else {
-                config.gateway4 = iface.gateway;
+            // Gateway / Routes
+            if (iface.gateway && iface.gateway.trim() !== '') {
+                if (isModern) {
+                    config.routes = [
+                        {
+                            to: 'default',
+                            via: iface.gateway
+                        }
+                    ];
+                } else {
+                    config.gateway4 = iface.gateway;
+                }
             }
         }
 
