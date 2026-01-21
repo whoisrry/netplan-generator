@@ -32,7 +32,9 @@ jobs:
         run: npm run build
 
       - name: Zip Build Output
-        run: zip -r netplan-generator-build.zip build/
+        run: |
+          cd build
+          zip -r ../netplan-generator-build.zip .
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
