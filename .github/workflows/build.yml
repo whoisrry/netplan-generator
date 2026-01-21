@@ -31,5 +31,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: netplan-generator-build
-          path: dist/
+          path: build/
           retention-days: 7

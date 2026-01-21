@@ -56,11 +56,11 @@ Build the static site:
 npm run build
 ```
 
-The output will be in the `dist` directory.
+The output will be in the `build` directory.
 
 ## GitHub Workflow & Deployment
 
-This project includes a GitHub Actions workflow to automatically build the application on every push to the `main` branch. The build artifacts (`dist` folder) can be downloaded from the Actions tab or configured for deployment to GitHub Pages.
+This project includes a GitHub Actions workflow to automatically build the application on every push to the `main` branch. The build artifacts (`build` folder) can be downloaded from the Actions tab or configured for deployment to GitHub Pages.
 
 ## License
 
