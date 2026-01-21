@@ -9,6 +9,43 @@ function cn(...inputs) {
     return twMerge(clsx(inputs));
 }
 
+// Helper to auto-format IP inputs on blur
+const formatIpAddress = (value, type) => {
+    let clean = value.trim();
+    if (!clean) return clean;
+
+    if (type === 'v4') {
+        // Specific shortcuts requested by user
+        if (clean === '192.168' || clean === '192.168.') return '192.168.0.1/24';
+        if (clean === '10' || clean === '10.') return '10.0.0.1/24';
+
+        // If it looks like a valid IP but missing mask, append /24
+        // Simple IPv4 regex
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(clean)) {
+            return `${clean}/24`;
+        }
+    } else if (type === 'v6') {
+        // If it looks like a valid IPv6 but missing mask, append /64
+        // Very basic IPv6 check (hexdigits and colons)
+        if (/^[0-9a-fA-F:]+$/.test(clean) && !clean.includes('/')) {
+            return `${clean}/64`;
+        }
+    }
+
+    return clean;
+};
+
+// Helper to validate CIDR format for visual feedback
+const isValidCidr = (value, type) => {
+    if (!value || value.trim() === '') return true; // Empty is valid (can be deleted)
+    if (type === 'v4') {
+        return /^(\d{1,3}\.){3}\d{1,3}\/(1?[0-9]|2[0-9]|3[0-2])$/.test(value);
+    } else if (type === 'v6') {
+        return /^[0-9a-fA-F:]+\/\d{1,3}$/.test(value);
+    }
+    return true;
+};
+
 const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) => {
     const handleChange = (field, value) => {
         onChange({ ...data, [field]: value });
@@ -20,6 +57,14 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         onChange({ ...data, [field]: newArray });
     };
 
+    const handleIpBlur = (field, index, type) => {
+        const currentVal = data[field][index];
+        const formatted = formatIpAddress(currentVal, type);
+        if (formatted !== currentVal) {
+            handleArrayChange(field, index, formatted);
+        }
+    };
+
     const addArrayItem = (field) => {
         onChange({ ...data, [field]: [...(data[field] || []), ''] });
     };
@@ -29,6 +74,9 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         newArray.splice(index, 1);
         onChange({ ...data, [field]: newArray });
     };
+
+    const hasV4 = (data.ipv4_addresses || []).some(a => a.trim() !== '');
+    const hasV6 = (data.ipv6_addresses || []).some(a => a.trim() !== '');
 
     return (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm mb-4 overflow-hidden transition-all duration-200">
@@ -162,8 +210,12 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                                             value={addr}
                                             disabled={data.dhcp4}
                                             onChange={(e) => handleArrayChange('ipv4_addresses', idx, e.target.value)}
+                                            onBlur={() => handleIpBlur('ipv4_addresses', idx, 'v4')}
                                             placeholder="e.g. 192.168.1.10/24"
-                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className={cn(
+                                                "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed transition",
+                                                !isValidCidr(addr, 'v4') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                            )}
                                         />
                                         <button
                                             onClick={() => removeArrayItem('ipv4_addresses', idx)}
@@ -191,9 +243,9 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                             <input
                                 type="text"
                                 value={data.gateway4 || ''}
-                                disabled={data.dhcp4}
+                                disabled={data.dhcp4 || !hasV4}
                                 onChange={(e) => handleChange('gateway4', e.target.value)}
-                                placeholder="e.g. 192.168.1.1"
+                                placeholder={!hasV4 ? "Add an IP address first" : "e.g. 192.168.1.1"}
                                 className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
@@ -218,8 +270,12 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                                             value={addr}
                                             disabled={data.dhcp6}
                                             onChange={(e) => handleArrayChange('ipv6_addresses', idx, e.target.value)}
+                                            onBlur={() => handleIpBlur('ipv6_addresses', idx, 'v6')}
                                             placeholder="e.g. 2001:db8::1/64"
-                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className={cn(
+                                                "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed transition",
+                                                !isValidCidr(addr, 'v6') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                            )}
                                         />
                                         <button
                                             onClick={() => removeArrayItem('ipv6_addresses', idx)}
@@ -247,9 +303,9 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                             <input
                                 type="text"
                                 value={data.gateway6 || ''}
-                                disabled={data.dhcp6}
+                                disabled={data.dhcp6 || !hasV6}
                                 onChange={(e) => handleChange('gateway6', e.target.value)}
-                                placeholder="e.g. 2001:db8::1"
+                                placeholder={!hasV6 ? "Add an IP address first" : "e.g. 2001:db8::1"}
                                 className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
