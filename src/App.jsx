@@ -13,8 +13,10 @@ function App() {
       type: 'ethernet',
       dhcp4: true,
       dhcp6: false,
-      addresses: [],
-      gateway: '',
+      ipv4_addresses: [],
+      ipv6_addresses: [],
+      gateway4: '',
+      gateway6: '',
       nameservers: [],
       wifi: { ssid: '', password: '' }
     }
@@ -36,8 +38,10 @@ function App() {
       type: 'ethernet',
       dhcp4: true,
       dhcp6: false,
-      addresses: [],
-      gateway: '',
+      ipv4_addresses: [],
+      ipv6_addresses: [],
+      gateway4: '',
+      gateway6: '',
       nameservers: [],
       wifi: { ssid: '', password: '' }
     };

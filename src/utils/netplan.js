@@ -32,28 +32,52 @@ export const generateNetplanYaml = (osId, interfaces) => {
         if (iface.dhcp4) config.dhcp4 = true;
         if (iface.dhcp6) config.dhcp6 = true;
 
-        // Static Addresses
-        // User requested to remove IP addresses if DHCP is enabled to prevent conflicts.
-        // The UI also disables these inputs when DHCPv4 is active.
-        if (!iface.dhcp4) {
-            const validAddresses = iface.addresses.filter(a => a.trim() !== '');
-            if (validAddresses.length > 0) {
-                config.addresses = validAddresses;
-            }
+        // Network Config / Addresses
+        const allAddresses = [];
+        const routes = [];
 
-            // Gateway / Routes
-            if (iface.gateway && iface.gateway.trim() !== '') {
+        // IPv4 Configuration
+        if (!iface.dhcp4) {
+            const v4Addrs = (iface.ipv4_addresses || []).filter(a => a.trim() !== '');
+            allAddresses.push(...v4Addrs);
+
+            // Gateway v4
+            if (iface.gateway4 && iface.gateway4.trim() !== '') {
                 if (isModern) {
-                    config.routes = [
-                        {
-                            to: 'default',
-                            via: iface.gateway
-                        }
-                    ];
+                    routes.push({
+                        to: 'default',
+                        via: iface.gateway4
+                    });
                 } else {
-                    config.gateway4 = iface.gateway;
+                    config.gateway4 = iface.gateway4;
                 }
             }
+        }
+
+        // IPv6 Configuration
+        if (!iface.dhcp6) {
+            const v6Addrs = (iface.ipv6_addresses || []).filter(a => a.trim() !== '');
+            allAddresses.push(...v6Addrs);
+
+            // Gateway v6
+            if (iface.gateway6 && iface.gateway6.trim() !== '') {
+                if (isModern) {
+                    routes.push({
+                        to: '::/0',
+                        via: iface.gateway6
+                    });
+                } else {
+                    config.gateway6 = iface.gateway6;
+                }
+            }
+        }
+
+        if (allAddresses.length > 0) {
+            config.addresses = allAddresses;
+        }
+
+        if (routes.length > 0) {
+            config.routes = routes;
         }
 
         // Nameservers

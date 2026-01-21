@@ -143,54 +143,116 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                         </div>
                     )}
 
-                    {/* Static IPs */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Static IP Addresses (CIDR)
-                        </label>
-                        <div className="space-y-2">
-                            {data.addresses.map((addr, idx) => (
-                                <div key={idx} className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={addr}
-                                        disabled={data.dhcp4}
-                                        onChange={(e) => handleArrayChange('addresses', idx, e.target.value)}
-                                        placeholder="e.g. 192.168.1.10/24"
-                                        className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                    />
-                                    <button
-                                        onClick={() => removeArrayItem('addresses', idx)}
-                                        disabled={data.dhcp4}
-                                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                            <button
-                                onClick={() => addArrayItem('addresses')}
+                    {/* IPv4 Configuration */}
+                    <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            IPv4 Configuration
+                        </h4>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                Static IPv4 Addresses (CIDR)
+                            </label>
+                            <div className="space-y-2">
+                                {(data.ipv4_addresses || []).map((addr, idx) => (
+                                    <div key={idx} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={addr}
+                                            disabled={data.dhcp4}
+                                            onChange={(e) => handleArrayChange('ipv4_addresses', idx, e.target.value)}
+                                            placeholder="e.g. 192.168.1.10/24"
+                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                        <button
+                                            onClick={() => removeArrayItem('ipv4_addresses', idx)}
+                                            disabled={data.dhcp4}
+                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => addArrayItem('ipv4_addresses')}
+                                    disabled={data.dhcp4}
+                                    className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" /> Add IPv4 Address
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                IPv4 Gateway
+                            </label>
+                            <input
+                                type="text"
+                                value={data.gateway4 || ''}
                                 disabled={data.dhcp4}
-                                className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Plus className="w-4 h-4 mr-1" /> Add Address
-                            </button>
+                                onChange={(e) => handleChange('gateway4', e.target.value)}
+                                placeholder="e.g. 192.168.1.1"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
                         </div>
                     </div>
 
-                    {/* Gateway */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Gateway (Default Route)
-                        </label>
-                        <input
-                            type="text"
-                            value={data.gateway || ''}
-                            disabled={data.dhcp4}
-                            onChange={(e) => handleChange('gateway', e.target.value)}
-                            placeholder="e.g. 192.168.1.1"
-                            className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
+                    {/* IPv6 Configuration */}
+                    <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            IPv6 Configuration
+                        </h4>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                Static IPv6 Addresses (CIDR)
+                            </label>
+                            <div className="space-y-2">
+                                {(data.ipv6_addresses || []).map((addr, idx) => (
+                                    <div key={idx} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={addr}
+                                            disabled={data.dhcp6}
+                                            onChange={(e) => handleArrayChange('ipv6_addresses', idx, e.target.value)}
+                                            placeholder="e.g. 2001:db8::1/64"
+                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                        <button
+                                            onClick={() => removeArrayItem('ipv6_addresses', idx)}
+                                            disabled={data.dhcp6}
+                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => addArrayItem('ipv6_addresses')}
+                                    disabled={data.dhcp6}
+                                    className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" /> Add IPv6 Address
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                IPv6 Gateway
+                            </label>
+                            <input
+                                type="text"
+                                value={data.gateway6 || ''}
+                                disabled={data.dhcp6}
+                                onChange={(e) => handleChange('gateway6', e.target.value)}
+                                placeholder="e.g. 2001:db8::1"
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                        </div>
                     </div>
 
                     {/* Nameservers */}
