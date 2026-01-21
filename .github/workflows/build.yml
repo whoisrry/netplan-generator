@@ -3,6 +3,8 @@ name: Build Netplan Generator
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -29,16 +31,13 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: netplan-generator-build
-          path: build/
-          retention-days: 7
+      - name: Zip Build Output
+        run: zip -r netplan-generator-build.zip build/
 
-      - name: Deploy to Build Branch
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
-          folder: build # The folder the action should deploy.
-          branch: build-artifacts # The branch the action should deploy to.
-          clean: true # Automatically remove deleted files from the deploy branch
+          files: netplan-generator-build.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
