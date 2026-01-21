@@ -94,5 +94,9 @@ export const generateNetplanYaml = (osId, interfaces) => {
 # Date: ${dateStr}
 # Save this file as /etc/netplan/00-installer-config.yaml
 
-${yamlContent}`;
+${yamlContent}
+
+# Apply configuration: sudo netplan apply
+# Test configuration: sudo netplan try
+# Debug: sudo netplan --debug apply`;
 };
