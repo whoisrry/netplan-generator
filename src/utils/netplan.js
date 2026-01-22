@@ -118,7 +118,7 @@ export const generateNetplanYaml = (osId, interfaces) => {
     return `# ${osConfig.name} Netplan Configuration
 # Generated on Rafelly's tools
 # Date: ${dateStr}
-# Save this file as /etc/netplan/00-installer-config.yaml
+# Save this file as /etc/netplan/01-netcfg.yaml
 
 ${yamlContent}
 
