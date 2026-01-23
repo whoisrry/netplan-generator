@@ -1,0 +1,138 @@
+
+// Helper to convert CIDR prefix to Netmask
+const cidrToNetmask = (prefix) => {
+    if (typeof prefix !== 'number') return '';
+    let mask = 0xffffffff;
+    mask = mask << (32 - prefix);
+    mask = mask >>> 0;
+    const p0 = (mask >> 24) & 0xff;
+    const p1 = (mask >> 16) & 0xff;
+    const p2 = (mask >> 8) & 0xff;
+    const p3 = mask & 0xff;
+    return `${p0}.${p1}.${p2}.${p3}`;
+};
+
+// Parse CIDR to get IP and Netmask
+const parseCidrV4 = (cidr) => {
+    const parts = cidr.split('/');
+    if (parts.length !== 2) return { ip: cidr, netmask: '' };
+    return {
+        ip: parts[0],
+        netmask: cidrToNetmask(parseInt(parts[1], 10))
+    };
+};
+
+export const generateIfupdownConfig = (interfaces) => {
+    const lines = [];
+    const dateStr = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2');
+
+    lines.push(`# /etc/network/interfaces`);
+    lines.push(`# Generated on Rafelly's tools - Date: ${dateStr}`);
+    lines.push(``);
+    lines.push(`source /etc/network/interfaces.d/*`);
+    lines.push(``);
+    lines.push(`# The loopback network interface`);
+    lines.push(`auto lo`);
+    lines.push(`iface lo inet loopback`);
+    lines.push(``);
+
+    interfaces.forEach(iface => {
+        if (!iface.name) return;
+
+        lines.push(`# ${iface.name} - ${iface.type}`);
+        lines.push(`auto ${iface.name}`);
+
+        // --- IPv4 Configuration ---
+        if (iface.enable_ipv4 !== false) { // Default to true if undefined
+            if (iface.dhcp4) {
+                lines.push(`iface ${iface.name} inet dhcp`);
+            } else {
+                const v4Raw = (iface.ipv4_addresses || []).filter(a => a.trim() !== '');
+
+                if (v4Raw.length > 0) {
+                    // Static
+                    lines.push(`iface ${iface.name} inet static`);
+                    const primary = parseCidrV4(v4Raw[0]);
+                    lines.push(`    address ${primary.ip}`);
+                    lines.push(`    netmask ${primary.netmask}`);
+
+                    if (iface.gateway4 && iface.gateway4.trim()) {
+                        lines.push(`    gateway ${iface.gateway4}`);
+                    }
+                } else {
+                    // No DHCP and No IP -> Manual
+                    lines.push(`iface ${iface.name} inet manual`);
+                }
+            }
+        }
+
+        // --- IPv6 Configuration ---
+        if (iface.enable_ipv6) {
+            if (iface.dhcp6) {
+                lines.push(`iface ${iface.name} inet6 dhcp`);
+            } else {
+                const v6Raw = (iface.ipv6_addresses || []).filter(a => a.trim() !== '');
+                if (v6Raw.length > 0) {
+                    lines.push(`iface ${iface.name} inet6 static`);
+                    lines.push(`    address ${v6Raw[0]}`);
+
+                    if (iface.gateway6 && iface.gateway6.trim()) {
+                        lines.push(`    gateway ${iface.gateway6}`);
+                    }
+                }
+                // If disable_ipv6 is false (default), and no dhcp/static, we don't output inet6 stanza usually.
+            }
+        }
+
+        // Common Fields
+        // We put these at the end of the block. In ifupdown, they usually apply to the interface
+        // regardless of the inet/inet6 stanza they follow, but convention is to put them after.
+
+        // MTU
+        if (iface.mtu && iface.mtu !== 1500) {
+            lines.push(`    mtu ${iface.mtu}`);
+        }
+
+        // DNS
+        const dns = (iface.nameservers || []).filter(d => d.trim() !== '');
+        if (dns.length > 0) {
+            lines.push(`    dns-nameservers ${dns.join(' ')}`);
+        }
+
+        // Bond Settings
+        if (iface.type === 'bond') {
+            if (iface.bond_interfaces && iface.bond_interfaces.length > 0) {
+                lines.push(`    bond-slaves ${iface.bond_interfaces.join(' ')}`);
+            } else {
+                lines.push(`    bond-slaves none`);
+            }
+            if (iface.bond_mode) {
+                lines.push(`    bond-mode ${iface.bond_mode}`);
+            }
+            lines.push(`    bond-miimon 100`);
+            lines.push(`    bond-downdelay 200`);
+            lines.push(`    bond-updelay 200`);
+        }
+
+        // VLAN Settings
+        if (iface.type === 'vlan') {
+            if (iface.vlan_link) {
+                lines.push(`    vlan-raw-device ${iface.vlan_link}`);
+            }
+        }
+
+        // Wi-Fi (WPA Supplicant)
+        if (iface.type === 'wifi' && iface.wifi && iface.wifi.ssid) {
+            lines.push(`    wpa-ssid ${iface.wifi.ssid}`);
+            if (iface.wifi.password) {
+                lines.push(`    wpa-psk ${iface.wifi.password}`);
+            }
+        }
+
+        lines.push(``);
+    });
+
+    return lines.join('\n');
+};

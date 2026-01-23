@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Trash2, Network, Wifi, Plus, X } from 'lucide-react';
+import { Trash2, Network, Wifi, Plus, X, Layers, Split, ChevronDown, ChevronRight, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -153,7 +152,7 @@ const validateGateway = (gateway, cidrAddresses, type) => {
     if (validCidrs.length === 0) return ''; // No valid CIDR addresses
 
     const gatewayTrimmed = gateway.trim();
-    
+
     if (type === 'v4') {
         // Basic IPv4 format check
         if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(gatewayTrimmed)) {
@@ -179,7 +178,7 @@ const validateGateway = (gateway, cidrAddresses, type) => {
     return ''; // Valid
 };
 
-const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) => {
+const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, existingInterfaces = [] }) => {
     const [gateway4Error, setGateway4Error] = useState('');
     const [gateway6Error, setGateway6Error] = useState('');
 
@@ -205,7 +204,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         const newArray = [...(data[field] || [])];
         newArray[index] = value;
         onChange({ ...data, [field]: newArray });
-        
+
         // Re-validate gateway when IP addresses change
         if (field === 'ipv4_addresses' && data.gateway4) {
             const error = validateGateway(data.gateway4, newArray, 'v4');
@@ -232,7 +231,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         const newArray = [...(data[field] || [])];
         newArray.splice(index, 1);
         onChange({ ...data, [field]: newArray });
-        
+
         // Re-validate gateway when IP addresses are removed
         if (field === 'ipv4_addresses' && data.gateway4) {
             const error = validateGateway(data.gateway4, newArray, 'v4');
@@ -240,6 +239,15 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         } else if (field === 'ipv6_addresses' && data.gateway6) {
             const error = validateGateway(data.gateway6, newArray, 'v6');
             setGateway6Error(error);
+        }
+    };
+
+    const toggleBondInterface = (ifaceName) => {
+        const currentInterfaces = data.bond_interfaces || [];
+        if (currentInterfaces.includes(ifaceName)) {
+            onChange({ ...data, bond_interfaces: currentInterfaces.filter(i => i !== ifaceName) });
+        } else {
+            onChange({ ...data, bond_interfaces: [...currentInterfaces, ifaceName] });
         }
     };
 
@@ -256,6 +264,15 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
         }
     }, [data.dhcp4, data.dhcp6]);
 
+    const getIcon = () => {
+        switch (data.type) {
+            case 'wifi': return <Wifi className="w-5 h-5 text-blue-500" />;
+            case 'bond': return <Layers className="w-5 h-5 text-purple-500" />;
+            case 'vlan': return <Split className="w-5 h-5 text-orange-500" />;
+            default: return <Network className="w-5 h-5 text-emerald-500" />;
+        }
+    };
+
     return (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm mb-4 overflow-hidden transition-all duration-200">
 
@@ -265,11 +282,10 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                 onClick={onToggleExpand}
             >
                 <div className="flex items-center gap-3">
-                    {data.type === 'wifi' ? (
-                        <Wifi className="w-5 h-5 text-blue-500" />
-                    ) : (
-                        <Network className="w-5 h-5 text-emerald-500" />
-                    )}
+                    <span className={cn("transition-transform", expanded ? "rotate-90" : "")}>
+                        <ChevronRight className="w-4 h-4 text-zinc-400" />
+                    </span>
+                    {getIcon()}
                     <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                         {data.name || 'New Interface'}
                     </span>
@@ -301,7 +317,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                                 type="text"
                                 value={data.name}
                                 onChange={(e) => handleChange('name', e.target.value)}
-                                placeholder="e.g. eth0, wlan0"
+                                placeholder="e.g. eth0, bond0, vlan10"
                                 className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                             />
                         </div>
@@ -316,31 +332,101 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                             >
                                 <option value="ethernet">Ethernet</option>
                                 <option value="wifi">Wi-Fi</option>
+                                <option value="bond">Bond</option>
+                                <option value="vlan">VLAN</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* DHCP Settings */}
-                    <div className="flex gap-6">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={data.dhcp4}
-                                onChange={(e) => handleChange('dhcp4', e.target.checked)}
-                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                            />
-                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable DHCPv4</span>
+                    {/* MTU */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            MTU (Optional)
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={data.dhcp6}
-                                onChange={(e) => handleChange('dhcp6', e.target.checked)}
-                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                            />
-                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable DHCPv6</span>
-                        </label>
+                        <input
+                            type="number"
+                            value={data.mtu || ''}
+                            onChange={(e) => handleChange('mtu', parseInt(e.target.value) || '')}
+                            placeholder="e.g. 1500, 9000"
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                        />
                     </div>
+
+                    {/* Bond Configuration */}
+                    {data.type === 'bond' && (
+                        <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800 rounded-md space-y-4">
+                            <h4 className="text-sm font-bold text-purple-900 dark:text-purple-200">Bond Configuration</h4>
+
+                            <div>
+                                <label className="block text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">Slave Interfaces</label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {existingInterfaces.map(ifaceName => (
+                                        <label key={ifaceName} className="flex items-center gap-2 cursor-pointer p-2 border border-purple-200 dark:border-purple-800 rounded bg-white dark:bg-zinc-900">
+                                            <input
+                                                type="checkbox"
+                                                checked={(data.bond_interfaces || []).includes(ifaceName)}
+                                                onChange={() => toggleBondInterface(ifaceName)}
+                                                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                                            />
+                                            <span className="text-sm text-zinc-700 dark:text-zinc-300">{ifaceName}</span>
+                                        </label>
+                                    ))}
+                                    {existingInterfaces.length === 0 && (
+                                        <p className="text-xs text-zinc-500 col-span-3">No other interfaces available to bond.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-purple-800 dark:text-purple-300 mb-1">Mode</label>
+                                <select
+                                    value={data.bond_mode || 'active-backup'}
+                                    onChange={(e) => handleChange('bond_mode', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-purple-300 dark:border-purple-800 rounded-md focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    <option value="balance-rr">balance-rr</option>
+                                    <option value="active-backup">active-backup</option>
+                                    <option value="balance-xor">balance-xor</option>
+                                    <option value="broadcast">broadcast</option>
+                                    <option value="802.3ad">802.3ad (LACP)</option>
+                                    <option value="balance-tlb">balance-tlb</option>
+                                    <option value="balance-alb">balance-alb</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* VLAN Configuration */}
+                    {data.type === 'vlan' && (
+                        <div className="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800 rounded-md space-y-4">
+                            <h4 className="text-sm font-bold text-orange-900 dark:text-orange-200">VLAN Configuration</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-orange-800 dark:text-orange-300 mb-1">VLAN ID</label>
+                                    <input
+                                        type="number"
+                                        value={data.vlan_id || ''}
+                                        onChange={(e) => handleChange('vlan_id', parseInt(e.target.value) || '')}
+                                        placeholder="e.g. 10, 100"
+                                        className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-orange-300 dark:border-orange-800 rounded-md focus:ring-2 focus:ring-orange-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-orange-800 dark:text-orange-300 mb-1">Raw Device (Link)</label>
+                                    <select
+                                        value={data.vlan_link || ''}
+                                        onChange={(e) => handleChange('vlan_link', e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-orange-300 dark:border-orange-800 rounded-md focus:ring-2 focus:ring-orange-500 outline-none"
+                                    >
+                                        <option value="">Select Interface</option>
+                                        {existingInterfaces.map(ifaceName => (
+                                            <option key={ifaceName} value={ifaceName}>{ifaceName}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Wi-Fi Settings */}
                     {data.type === 'wifi' && (
@@ -369,156 +455,216 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand }) =
                         </div>
                     )}
 
-                    {/* IPv4 Configuration */}
-                    {!data.dhcp4 && (
-                        <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                    {/* IPv4 Settings Block */}
+                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+                        <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
                             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                IPv4 Configuration
+                                IPv4 Settings
                             </h4>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Enable</span>
+                                <div className={cn("w-9 h-5 rounded-full p-0.5 transition-colors", data.enable_ipv4 ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={data.enable_ipv4 !== false}
+                                        onChange={(e) => handleChange('enable_ipv4', e.target.checked)}
+                                        className="hidden"
+                                    />
+                                    <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", data.enable_ipv4 ? "translate-x-full" : "translate-x-0")}></div>
+                                </div>
+                            </label>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Static IPv4 Addresses (CIDR)
+                        {data.enable_ipv4 && (
+                            <div className="p-4 space-y-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.dhcp4}
+                                        onChange={(e) => handleChange('dhcp4', e.target.checked)}
+                                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                                    />
+                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable DHCPv4</span>
                                 </label>
-                                <div className="space-y-2">
-                                    {(data.ipv4_addresses || []).map((addr, idx) => (
-                                        <div key={idx} className="flex gap-2">
+
+                                {!data.dhcp4 && (
+                                    <div className="space-y-4 pt-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                Static IPv4 Addresses (CIDR)
+                                            </label>
+                                            <div className="space-y-2">
+                                                {(data.ipv4_addresses || []).map((addr, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={addr}
+                                                            onChange={(e) => handleArrayChange('ipv4_addresses', idx, e.target.value)}
+                                                            onBlur={() => handleIpBlur('ipv4_addresses', idx, 'v4')}
+                                                            placeholder="e.g. 192.168.1.10/24"
+                                                            className={cn(
+                                                                "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-sm transition",
+                                                                !isValidCidr(addr, 'v4') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                                            )}
+                                                        />
+                                                        <button
+                                                            onClick={() => removeArrayItem('ipv4_addresses', idx)}
+                                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => addArrayItem('ipv4_addresses')}
+                                                    className="flex items-center text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" /> Add IPv4 Address
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                IPv4 Gateway
+                                            </label>
                                             <input
                                                 type="text"
-                                                value={addr}
-                                                onChange={(e) => handleArrayChange('ipv4_addresses', idx, e.target.value)}
-                                                onBlur={() => handleIpBlur('ipv4_addresses', idx, 'v4')}
-                                                placeholder="e.g. 192.168.1.10/24"
+                                                value={data.gateway4 || ''}
+                                                disabled={!hasV4}
+                                                onChange={(e) => handleChange('gateway4', e.target.value)}
+                                                onBlur={() => {
+                                                    if (data.gateway4 && hasV4) {
+                                                        const error = validateGateway(data.gateway4, data.ipv4_addresses || [], 'v4');
+                                                        setGateway4Error(error);
+                                                    } else {
+                                                        setGateway4Error('');
+                                                    }
+                                                }}
+                                                placeholder={!hasV4 ? "Add an IP address first" : "e.g. 192.168.1.1"}
                                                 className={cn(
-                                                    "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm transition",
-                                                    !isValidCidr(addr, 'v4') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                                    "w-full px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-emerald-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed",
+                                                    gateway4Error ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
                                                 )}
                                             />
-                                            <button
-                                                onClick={() => removeArrayItem('ipv4_addresses', idx)}
-                                                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                            {gateway4Error && (
+                                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway4Error}</p>
+                                            )}
                                         </div>
-                                    ))}
-                                    <button
-                                        onClick={() => addArrayItem('ipv4_addresses')}
-                                        className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
-                                    >
-                                        <Plus className="w-4 h-4 mr-1" /> Add IPv4 Address
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    IPv4 Gateway
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.gateway4 || ''}
-                                    disabled={!hasV4}
-                                    onChange={(e) => handleChange('gateway4', e.target.value)}
-                                    onBlur={() => {
-                                        if (data.gateway4 && hasV4) {
-                                            const error = validateGateway(data.gateway4, data.ipv4_addresses || [], 'v4');
-                                            setGateway4Error(error);
-                                        } else {
-                                            setGateway4Error('');
-                                        }
-                                    }}
-                                    placeholder={!hasV4 ? "Add an IP address first" : "e.g. 192.168.1.1"}
-                                    className={cn(
-                                        "w-full px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed",
-                                        gateway4Error ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
-                                    )}
-                                />
-                                {gateway4Error && (
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway4Error}</p>
+                                    </div>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
-                    {/* IPv6 Configuration */}
-                    {!data.dhcp6 && (
-                        <div className="space-y-4 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                    {/* IPv6 Settings Block */}
+                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+                        <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
                             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                IPv6 Configuration
+                                IPv6 Settings
                             </h4>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Enable</span>
+                                <div className={cn("w-9 h-5 rounded-full p-0.5 transition-colors", data.enable_ipv6 ? "bg-blue-500" : "bg-zinc-300 dark:bg-zinc-700")}>
+                                    <input
+                                        type="checkbox"
+                                        checked={data.enable_ipv6}
+                                        onChange={(e) => handleChange('enable_ipv6', e.target.checked)}
+                                        className="hidden"
+                                    />
+                                    <div className={cn("w-4 h-4 bg-white rounded-full shadow-sm transition-transform", data.enable_ipv6 ? "translate-x-full" : "translate-x-0")}></div>
+                                </div>
+                            </label>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Static IPv6 Addresses (CIDR)
+                        {data.enable_ipv6 && (
+                            <div className="p-4 space-y-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.dhcp6}
+                                        onChange={(e) => handleChange('dhcp6', e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable DHCPv6</span>
                                 </label>
-                                <div className="space-y-2">
-                                    {(data.ipv6_addresses || []).map((addr, idx) => (
-                                        <div key={idx} className="flex gap-2">
+
+                                {!data.dhcp6 && (
+                                    <div className="space-y-4 pt-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                Static IPv6 Addresses (CIDR)
+                                            </label>
+                                            <div className="space-y-2">
+                                                {(data.ipv6_addresses || []).map((addr, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={addr}
+                                                            onChange={(e) => handleArrayChange('ipv6_addresses', idx, e.target.value)}
+                                                            onBlur={() => handleIpBlur('ipv6_addresses', idx, 'v6')}
+                                                            placeholder="e.g. 2001:db8::1/64"
+                                                            className={cn(
+                                                                "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm transition",
+                                                                !isValidCidr(addr, 'v6') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                                            )}
+                                                        />
+                                                        <button
+                                                            onClick={() => removeArrayItem('ipv6_addresses', idx)}
+                                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => addArrayItem('ipv6_addresses')}
+                                                    className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" /> Add IPv6 Address
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                IPv6 Gateway
+                                            </label>
                                             <input
                                                 type="text"
-                                                value={addr}
-                                                onChange={(e) => handleArrayChange('ipv6_addresses', idx, e.target.value)}
-                                                onBlur={() => handleIpBlur('ipv6_addresses', idx, 'v6')}
-                                                placeholder="e.g. 2001:db8::1/64"
+                                                value={data.gateway6 || ''}
+                                                disabled={!hasV6}
+                                                onChange={(e) => handleChange('gateway6', e.target.value)}
+                                                onBlur={() => {
+                                                    if (data.gateway6 && hasV6) {
+                                                        const error = validateGateway(data.gateway6, data.ipv6_addresses || [], 'v6');
+                                                        setGateway6Error(error);
+                                                    } else {
+                                                        setGateway6Error('');
+                                                    }
+                                                }}
+                                                placeholder={!hasV6 ? "Add an IP address first" : "e.g. 2001:db8::1"}
                                                 className={cn(
-                                                    "flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm transition",
-                                                    !isValidCidr(addr, 'v6') ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
+                                                    "w-full px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed",
+                                                    gateway6Error ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
                                                 )}
                                             />
-                                            <button
-                                                onClick={() => removeArrayItem('ipv6_addresses', idx)}
-                                                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
+                                            {gateway6Error && (
+                                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway6Error}</p>
+                                            )}
                                         </div>
-                                    ))}
-                                    <button
-                                        onClick={() => addArrayItem('ipv6_addresses')}
-                                        className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
-                                    >
-                                        <Plus className="w-4 h-4 mr-1" /> Add IPv6 Address
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    IPv6 Gateway
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.gateway6 || ''}
-                                    disabled={!hasV6}
-                                    onChange={(e) => handleChange('gateway6', e.target.value)}
-                                    onBlur={() => {
-                                        if (data.gateway6 && hasV6) {
-                                            const error = validateGateway(data.gateway6, data.ipv6_addresses || [], 'v6');
-                                            setGateway6Error(error);
-                                        } else {
-                                            setGateway6Error('');
-                                        }
-                                    }}
-                                    placeholder={!hasV6 ? "Add an IP address first" : "e.g. 2001:db8::1"}
-                                    className={cn(
-                                        "w-full px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed",
-                                        gateway6Error ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "border-zinc-300 dark:border-zinc-700"
-                                    )}
-                                />
-                                {gateway6Error && (
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway6Error}</p>
+                                    </div>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     {/* Nameservers */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            DNS Nameservers
+                            DNS Nameservers (IPv4/IPv6)
                         </label>
                         <div className="space-y-2">
                             {data.nameservers.map((ns, idx) => (

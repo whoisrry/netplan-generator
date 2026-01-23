@@ -16,7 +16,9 @@ export const generateNetplanYaml = (osId, interfaces) => {
     const network = {
         version: 2,
         ethernets: {},
-        wifis: {}
+        wifis: {},
+        bonds: {},
+        vlans: {}
     };
 
     // If no renderer is specified, networkd is default on server, NetworkManager on desktop.
@@ -28,67 +30,74 @@ export const generateNetplanYaml = (osId, interfaces) => {
 
         const config = {};
 
-        // DHCP
-        if (iface.dhcp4) config.dhcp4 = true;
-        if (iface.dhcp6) config.dhcp6 = true;
+        // IPv4 Config
+        if (iface.enable_ipv4 !== false) { // Default to true if undefined
+            if (iface.dhcp4) {
+                config.dhcp4 = true;
+            } else {
+                // Static v4
+                const v4Addrs = (iface.ipv4_addresses || []).filter(a => a.trim() !== '');
+                if (v4Addrs.length > 0) {
+                    if (!config.addresses) config.addresses = [];
+                    config.addresses.push(...v4Addrs);
+                }
 
-        // Network Config / Addresses
-        const allAddresses = [];
-        const routes = [];
-
-        // IPv4 Configuration
-        if (!iface.dhcp4) {
-            const v4Addrs = (iface.ipv4_addresses || []).filter(a => a.trim() !== '');
-            allAddresses.push(...v4Addrs);
-
-            // Gateway v4
-            if (iface.gateway4 && iface.gateway4.trim() !== '') {
-                if (isModern) {
-                    routes.push({
-                        to: 'default',
-                        via: iface.gateway4
-                    });
-                } else {
-                    config.gateway4 = iface.gateway4;
+                // Gateway v4
+                if (iface.gateway4 && iface.gateway4.trim() !== '') {
+                    if (isModern) {
+                        if (!config.routes) config.routes = [];
+                        config.routes.push({
+                            to: 'default',
+                            via: iface.gateway4
+                        });
+                    } else {
+                        config.gateway4 = iface.gateway4;
+                    }
                 }
             }
         }
 
-        // IPv6 Configuration
-        if (!iface.dhcp6) {
-            const v6Addrs = (iface.ipv6_addresses || []).filter(a => a.trim() !== '');
-            allAddresses.push(...v6Addrs);
+        // IPv6 Config
+        if (iface.enable_ipv6) {
+            if (iface.dhcp6) {
+                config.dhcp6 = true;
+            } else {
+                // Static v6
+                const v6Addrs = (iface.ipv6_addresses || []).filter(a => a.trim() !== '');
+                if (v6Addrs.length > 0) {
+                    if (!config.addresses) config.addresses = [];
+                    config.addresses.push(...v6Addrs);
+                }
 
-            // Gateway v6
-            if (iface.gateway6 && iface.gateway6.trim() !== '') {
-                if (isModern) {
-                    routes.push({
-                        to: '::/0',
-                        via: iface.gateway6
-                    });
-                } else {
-                    config.gateway6 = iface.gateway6;
+                // Gateway v6
+                if (iface.gateway6 && iface.gateway6.trim() !== '') {
+                    if (isModern) {
+                        if (!config.routes) config.routes = [];
+                        config.routes.push({
+                            to: '::/0',
+                            via: iface.gateway6
+                        });
+                    } else {
+                        config.gateway6 = iface.gateway6;
+                    }
                 }
             }
         }
 
-        if (allAddresses.length > 0) {
-            config.addresses = allAddresses;
-        }
-
-        if (routes.length > 0) {
-            config.routes = routes;
+        // MTU
+        if (iface.mtu && iface.mtu !== 1500) {
+            config.mtu = iface.mtu;
         }
 
         // Nameservers
-        const validNameservers = iface.nameservers.filter(n => n.trim() !== '');
+        const validNameservers = (iface.nameservers || []).filter(n => n.trim() !== '');
         if (validNameservers.length > 0) {
             config.nameservers = {
                 addresses: validNameservers
             };
         }
 
-        // Assign to correct type
+        // Assign to correct section based on type
         if (iface.type === 'ethernet') {
             network.ethernets[iface.name] = config;
         } else if (iface.type === 'wifi') {
@@ -102,12 +111,35 @@ export const generateNetplanYaml = (osId, interfaces) => {
                 }
             }
             network.wifis[iface.name] = wifiConfig;
+        } else if (iface.type === 'bond') {
+            const bondConfig = { ...config };
+            if (iface.bond_interfaces && iface.bond_interfaces.length > 0) {
+                bondConfig.interfaces = iface.bond_interfaces;
+            }
+            if (iface.bond_mode) {
+                bondConfig.parameters = {
+                    mode: iface.bond_mode,
+                    'mii-monitor-interval': 100 // Default sensible value
+                };
+            }
+            network.bonds[iface.name] = bondConfig;
+        } else if (iface.type === 'vlan') {
+            const vlanConfig = { ...config };
+            if (iface.vlan_id) {
+                vlanConfig.id = iface.vlan_id;
+            }
+            if (iface.vlan_link) {
+                vlanConfig.link = iface.vlan_link;
+            }
+            network.vlans[iface.name] = vlanConfig;
         }
     });
 
     // Cleanup empty objects
     if (Object.keys(network.ethernets).length === 0) delete network.ethernets;
     if (Object.keys(network.wifis).length === 0) delete network.wifis;
+    if (Object.keys(network.bonds).length === 0) delete network.bonds;
+    if (Object.keys(network.vlans).length === 0) delete network.vlans;
 
     const yamlContent = yaml.dump({ network }, { indent: 2, noRefs: true });
 
