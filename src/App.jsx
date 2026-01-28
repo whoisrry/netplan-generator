@@ -27,7 +27,8 @@ function App() {
       bond_interfaces: [],
       bond_mode: 'active-backup',
       vlan_id: null,
-      vlan_link: ''
+      vlan_link: '',
+      routes: []
     }
   ]);
   const [expandedId, setExpandedId] = useState("init_1");
@@ -69,7 +70,8 @@ function App() {
       bond_interfaces: [],
       bond_mode: 'active-backup',
       vlan_id: null,
-      vlan_link: ''
+      vlan_link: '',
+      routes: []
     };
     setInterfaces([...interfaces, newIface]);
     setExpandedId(newId);

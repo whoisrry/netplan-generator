@@ -84,6 +84,18 @@ export const generateNetplanYaml = (osId, interfaces) => {
             }
         }
 
+        // Custom Routes
+        const validRoutes = (iface.routes || []).filter(r => r.to && r.to.trim() !== '' && r.via && r.via.trim() !== '');
+        if (validRoutes.length > 0) {
+            if (!config.routes) config.routes = [];
+            validRoutes.forEach(r => {
+                config.routes.push({
+                    to: r.to.trim(),
+                    via: r.via.trim()
+                });
+            });
+        }
+
         // MTU
         if (iface.mtu && iface.mtu !== 1500) {
             config.mtu = iface.mtu;

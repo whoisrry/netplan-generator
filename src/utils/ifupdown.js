@@ -86,6 +86,24 @@ export const generateIfupdownConfig = (interfaces) => {
             }
         }
 
+        // --- Custom Routes ---
+        const validRoutes = (iface.routes || []).filter(r => r.to && r.to.trim() !== '' && r.via && r.via.trim() !== '');
+        validRoutes.forEach(r => {
+            const dest = r.to.trim();
+            const gw = r.via.trim();
+            // Check if it's IPv6 (contains :)
+            const isV6 = dest.includes(':');
+            if (isV6) {
+                lines.push(`    up ip -6 route add ${dest} via ${gw} dev ${iface.name}`);
+                lines.push(`    down ip -6 route del ${dest} via ${gw} dev ${iface.name}`);
+            } else {
+                // IPv4 using route command or ip route
+                // User's example: up route add -net 10.10.10.0/24 gw 192.168.1.254
+                lines.push(`    up route add -net ${dest} gw ${gw} dev ${iface.name}`);
+                lines.push(`    down route del -net ${dest} gw ${gw} dev ${iface.name}`);
+            }
+        });
+
         // Common Fields
         // We put these at the end of the block. In ifupdown, they usually apply to the interface
         // regardless of the inet/inet6 stanza they follow, but convention is to put them after.

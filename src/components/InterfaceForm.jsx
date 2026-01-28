@@ -661,6 +661,70 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                         )}
                     </div>
 
+                    {/* Static Routes */}
+                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+                        <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
+                            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                Static Routes
+                            </h4>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div className="space-y-2">
+                                {(data.routes || []).map((route, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-2 relative group">
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1">To (Destination)</label>
+                                            <input
+                                                type="text"
+                                                value={route.to}
+                                                onChange={(e) => {
+                                                    const newRoutes = [...data.routes];
+                                                    newRoutes[idx] = { ...newRoutes[idx], to: e.target.value };
+                                                    handleChange('routes', newRoutes);
+                                                }}
+                                                placeholder="e.g. 10.10.10.0/24"
+                                                className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 items-end">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-medium text-zinc-500 mb-1">Via (Gateway)</label>
+                                                <input
+                                                    type="text"
+                                                    value={route.via}
+                                                    onChange={(e) => {
+                                                        const newRoutes = [...data.routes];
+                                                        newRoutes[idx] = { ...newRoutes[idx], via: e.target.value };
+                                                        handleChange('routes', newRoutes);
+                                                    }}
+                                                    placeholder="e.g. 192.168.1.254"
+                                                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const newRoutes = [...data.routes];
+                                                    newRoutes.splice(idx, 1);
+                                                    handleChange('routes', newRoutes);
+                                                }}
+                                                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => handleChange('routes', [...(data.routes || []), { to: '', via: '' }])}
+                                    className="flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium pt-2"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" /> Add Static Route
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Nameservers */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
