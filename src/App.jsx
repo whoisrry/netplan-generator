@@ -279,7 +279,7 @@ function App() {
                 <li>Download the interfaces file</li>
                 <li>Backup existing: <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-xs font-mono">sudo cp /etc/network/interfaces /etc/network/interfaces.bak</code></li>
                 <li>Replace file: <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-xs font-mono">sudo mv interfaces /etc/network/interfaces</code></li>
-                <li>Restart networking or reboot</li>
+                <li>Apply changes: <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-xs font-mono">sudo systemctl restart networking</code> or <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded text-xs font-mono">sudo ifreload -a</code></li>
               </ol>
             )}
           </div>
