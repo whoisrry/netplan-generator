@@ -61,6 +61,12 @@ export const generateIfupdownConfig = (interfaces) => {
                     if (iface.gateway4 && iface.gateway4.trim()) {
                         lines.push(`    gateway ${iface.gateway4}`);
                     }
+
+                    // IPv4 DNS
+                    const dns4 = (iface.nameservers4 || []).filter(d => d.trim() !== '');
+                    if (dns4.length > 0) {
+                        lines.push(`    dns-nameservers ${dns4.join(' ')}`);
+                    }
                 } else {
                     // No DHCP and No IP -> Manual
                     lines.push(`iface ${iface.name} inet manual`);
@@ -69,6 +75,17 @@ export const generateIfupdownConfig = (interfaces) => {
         }
 
         // --- IPv6 Configuration ---
+        const v6LinkLocalEnabled = (iface.link_local || []).includes('ipv6');
+
+        if (!v6LinkLocalEnabled) {
+            // Logic to disable IPv6 link-local if not requested
+            // This is a bit tricky in ifupdown, but the user suggested:
+            // pre-up ip link set dev $IFACE addrgenmode none
+            // post-up sleep 10 && ip addr flush dev $IFACE scope link
+            lines.push(`    pre-up ip link set dev ${iface.name} addrgenmode none`);
+            lines.push(`    post-up sleep 10 && ip addr flush dev ${iface.name} scope link`);
+        }
+
         if (iface.enable_ipv6) {
             if (iface.dhcp6) {
                 lines.push(`iface ${iface.name} inet6 dhcp`);
@@ -81,6 +98,18 @@ export const generateIfupdownConfig = (interfaces) => {
                     if (iface.gateway6 && iface.gateway6.trim()) {
                         lines.push(`    gateway ${iface.gateway6}`);
                     }
+
+                    // IPv6 DNS
+                    const dns6 = (iface.nameservers6 || []).filter(d => d.trim() !== '');
+                    if (dns6.length > 0) {
+                        // For ifupdown, dns-nameservers is the same directive, usually resolvconf handles mixing.
+                        // But we put it in the inet6 block if it's v6 specific.
+                        lines.push(`    dns-nameservers ${dns6.join(' ')}`);
+                    }
+
+                    // Specific sysctl settings for static IPv6 as requested
+                    lines.push(`    post-up sysctl -w net.ipv6.conf.${iface.name}.autoconf=0`);
+                    lines.push(`    post-up sysctl -w net.ipv6.conf.${iface.name}.accept_ra=0`);
                 }
                 // If disable_ipv6 is false (default), and no dhcp/static, we don't output inet6 stanza usually.
             }
@@ -113,11 +142,7 @@ export const generateIfupdownConfig = (interfaces) => {
             lines.push(`    mtu ${iface.mtu}`);
         }
 
-        // DNS
-        const dns = (iface.nameservers || []).filter(d => d.trim() !== '');
-        if (dns.length > 0) {
-            lines.push(`    dns-nameservers ${dns.join(' ')}`);
-        }
+
 
         // Bond Settings
         if (iface.type === 'bond') {

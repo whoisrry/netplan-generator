@@ -69,6 +69,11 @@ export const generateNetplanYaml = (osId, interfaces) => {
                     config.addresses.push(...v6Addrs);
                 }
 
+                // If static IPv6, disable RA if requested (common requirement for static setups)
+                // Although netplan defaults 'accept-ra' to true, when using static, it's safer to disable if not needed
+                // But the user specifically asked for "accept_ra=0" logic equivalence
+                config['accept-ra'] = false;
+
                 // Gateway v6
                 if (iface.gateway6 && iface.gateway6.trim() !== '') {
                     if (isModern) {
@@ -82,6 +87,17 @@ export const generateNetplanYaml = (osId, interfaces) => {
                     }
                 }
             }
+        }
+
+        // Link Local
+        const ll = [];
+
+        if (iface.link_local && iface.link_local.includes('ipv6')) {
+            ll.push('ipv6');
+        }
+
+        if (ll.length > 0) {
+            config['link-local'] = ll;
         }
 
         // Custom Routes
@@ -102,10 +118,13 @@ export const generateNetplanYaml = (osId, interfaces) => {
         }
 
         // Nameservers
-        const validNameservers = (iface.nameservers || []).filter(n => n.trim() !== '');
-        if (validNameservers.length > 0) {
+        const ns4 = (iface.nameservers4 || []).filter(n => n.trim() !== '');
+        const ns6 = (iface.nameservers6 || []).filter(n => n.trim() !== '');
+        const allNameservers = [...ns4, ...ns6];
+
+        if (allNameservers.length > 0) {
             config.nameservers = {
-                addresses: validNameservers
+                addresses: allNameservers
             };
         }
 

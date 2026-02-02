@@ -7,10 +7,13 @@ A client-side React application for visually configuring network interfaces and 
 - **Multiple Configuration Formats**: Generate both **Netplan (YAML)** and **Ifupdown (`/etc/network/interfaces`)** configuration files.
 - **Visual Interface Configuration**: Add multiple **Ethernet**, **Wi-Fi**, **Bond**, and **VLAN** interfaces via a clean UI.
 - **Support for Multiple OS Versions**: Tailored configurations for Ubuntu 20.04, 22.04, 24.04, 26.04, and Debian.
-- **Comprehensive IP Management**:
-    - **IPv4 & IPv6 Support**: Configure DHCP or static addresses for both versions.
-    - **CIDR Validation**: Real-time validation for IP address formatting.
-    - **Smart Inputs**: Gateway and nameserver fields enable/disable based on IP configuration.
+- **Advanced IP Management**:
+    - **Dual Stack Support**: Configure **IPv4** and **IPv6** independently with separate blocks for DHPC, static addresses, gateways, and DNS.
+    - **Split DNS**: Dedicated DNS nameserver inputs for IPv4 and IPv6 to ensure correct routing and resolution.
+    - **Link Local Control**: Explicit toggle for IPv6 Link Local addresses.
+    - **Smart Validation**: 
+        - Real-time CIDR format validation.
+        - **Route Consistency**: Enforces matching IP versions between Static Route destinations and gateways (e.g., IPv4 destination requires IPv4 gateway).
 - **Real-time Preview**: See the generated config update instantly as you make changes.
 - **Client-Side Only**: Secure and private; no network configuration data is sent to any server.
 - **Responsive Design**: Built with Tailwind CSS for a seamless experience on desktop and mobile.

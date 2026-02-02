@@ -178,6 +178,20 @@ const validateGateway = (gateway, cidrAddresses, type) => {
     return ''; // Valid
 };
 
+// Detect IP version relative to input string
+const getIpVersion = (input) => {
+    if (!input || input.trim() === '') return null;
+    const clean = input.trim().split('/')[0]; // Remove CIDR if present
+
+    // Check v4
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(clean)) return 'v4';
+
+    // Check v6 (simple check)
+    if (clean.includes(':')) return 'v6';
+
+    return null;
+};
+
 const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, existingInterfaces = [] }) => {
     const [gateway4Error, setGateway4Error] = useState('');
     const [gateway6Error, setGateway6Error] = useState('');
@@ -248,6 +262,15 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
             onChange({ ...data, bond_interfaces: currentInterfaces.filter(i => i !== ifaceName) });
         } else {
             onChange({ ...data, bond_interfaces: [...currentInterfaces, ifaceName] });
+        }
+    };
+
+    const toggleLinkLocal = (type) => {
+        const current = data.link_local || []; // Default might be undefined in old state, though we init it
+        if (current.includes(type)) {
+            onChange({ ...data, link_local: current.filter(t => t !== type) });
+        } else {
+            onChange({ ...data, link_local: [...current, type] });
         }
     };
 
@@ -552,14 +575,45 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway4Error}</p>
                                             )}
                                         </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                DNS Nameservers (IPv4)
+                                            </label>
+                                            <div className="space-y-2">
+                                                {(data.nameservers4 || []).map((ns, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={ns}
+                                                            onChange={(e) => handleArrayChange('nameservers4', idx, e.target.value)}
+                                                            placeholder="e.g. 8.8.8.8"
+                                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                                                        />
+                                                        <button
+                                                            onClick={() => removeArrayItem('nameservers4', idx)}
+                                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => addArrayItem('nameservers4')}
+                                                    className="flex items-center text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" /> Add IPv4 DNS
+                                                </button>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
-
-                    {/* IPv6 Settings Block */}
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
+
                         <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
                             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -655,11 +709,60 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{gateway6Error}</p>
                                             )}
                                         </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                DNS Nameservers (IPv6)
+                                            </label>
+                                            <div className="space-y-2">
+                                                {(data.nameservers6 || []).map((ns, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={ns}
+                                                            onChange={(e) => handleArrayChange('nameservers6', idx, e.target.value)}
+                                                            placeholder="e.g. 2001:4860:4860::8888"
+                                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                        />
+                                                        <button
+                                                            onClick={() => removeArrayItem('nameservers6', idx)}
+                                                            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => addArrayItem('nameservers6')}
+                                                    className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" /> Add IPv6 DNS
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(data.link_local || []).includes('ipv6')}
+                                                    onChange={() => toggleLinkLocal('ipv6')}
+                                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable IPv6 Link Local</span>
+                                            </label>
+
+
+
+
+
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+                                )
+                                }
+                            </div >
                         )}
-                    </div>
+                    </div >
 
                     {/* Static Routes */}
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
@@ -699,7 +802,17 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                                         handleChange('routes', newRoutes);
                                                     }}
                                                     placeholder="e.g. 192.168.1.254"
-                                                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                                                    className={cn(
+                                                        "w-full px-3 py-2 bg-white dark:bg-zinc-950 border rounded-md focus:ring-2 focus:ring-purple-500 font-mono text-sm",
+                                                        (() => {
+                                                            const destVer = getIpVersion(route.to);
+                                                            const gateVer = getIpVersion(route.via);
+                                                            if (destVer && gateVer && destVer !== gateVer) {
+                                                                return "border-red-500 focus:border-red-500 focus:ring-red-200";
+                                                            }
+                                                            return "border-zinc-300 dark:border-zinc-700";
+                                                        })()
+                                                    )}
                                                 />
                                             </div>
                                             <button
@@ -713,6 +826,18 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                                 <X className="w-4 h-4" />
                                             </button>
                                         </div>
+                                        {(() => {
+                                            const destVer = getIpVersion(route.to);
+                                            const gateVer = getIpVersion(route.via);
+                                            if (destVer && gateVer && destVer !== gateVer) {
+                                                return (
+                                                    <div className="col-span-1 md:col-span-2 text-xs text-red-600 dark:text-red-400">
+                                                        Gateway must be {destVer === 'v4' ? 'IPv4' : 'IPv6'} to match Destination.
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                 ))}
                                 <button
@@ -723,39 +848,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Nameservers */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            DNS Nameservers (IPv4/IPv6)
-                        </label>
-                        <div className="space-y-2">
-                            {data.nameservers.map((ns, idx) => (
-                                <div key={idx} className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={ns}
-                                        onChange={(e) => handleArrayChange('nameservers', idx, e.target.value)}
-                                        placeholder="e.g. 8.8.8.8"
-                                        className="flex-1 px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
-                                    />
-                                    <button
-                                        onClick={() => removeArrayItem('nameservers', idx)}
-                                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                            <button
-                                onClick={() => addArrayItem('nameservers')}
-                                className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
-                            >
-                                <Plus className="w-4 h-4 mr-1" /> Add DNS
-                            </button>
-                        </div>
-                    </div>
+                    </div >
 
                 </div>
             )}
