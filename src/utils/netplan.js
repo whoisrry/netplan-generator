@@ -18,6 +18,7 @@ export const generateNetplanYaml = (osId, interfaces) => {
         ethernets: {},
         wifis: {},
         bonds: {},
+        bridges: {},
         vlans: {}
     };
 
@@ -154,6 +155,17 @@ export const generateNetplanYaml = (osId, interfaces) => {
                 };
             }
             network.bonds[iface.name] = bondConfig;
+        } else if (iface.type === 'bridge') {
+            const bridgeConfig = { ...config };
+            if (iface.bridge_interfaces && iface.bridge_interfaces.length > 0) {
+                bridgeConfig.interfaces = iface.bridge_interfaces;
+            }
+            if (iface.bridge_stp !== undefined) {
+                bridgeConfig.parameters = {
+                    stp: iface.bridge_stp
+                };
+            }
+            network.bridges[iface.name] = bridgeConfig;
         } else if (iface.type === 'vlan') {
             const vlanConfig = { ...config };
             if (iface.vlan_id) {
@@ -170,6 +182,7 @@ export const generateNetplanYaml = (osId, interfaces) => {
     if (Object.keys(network.ethernets).length === 0) delete network.ethernets;
     if (Object.keys(network.wifis).length === 0) delete network.wifis;
     if (Object.keys(network.bonds).length === 0) delete network.bonds;
+    if (Object.keys(network.bridges).length === 0) delete network.bridges;
     if (Object.keys(network.vlans).length === 0) delete network.vlans;
 
     const yamlContent = yaml.dump({ network }, { indent: 2, noRefs: true });

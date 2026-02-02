@@ -265,6 +265,15 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
         }
     };
 
+    const toggleBridgeInterface = (ifaceName) => {
+        const currentInterfaces = data.bridge_interfaces || [];
+        if (currentInterfaces.includes(ifaceName)) {
+            onChange({ ...data, bridge_interfaces: currentInterfaces.filter(i => i !== ifaceName) });
+        } else {
+            onChange({ ...data, bridge_interfaces: [...currentInterfaces, ifaceName] });
+        }
+    };
+
     const toggleLinkLocal = (type) => {
         const current = data.link_local || []; // Default might be undefined in old state, though we init it
         if (current.includes(type)) {
@@ -291,6 +300,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
         switch (data.type) {
             case 'wifi': return <Wifi className="w-5 h-5 text-blue-500" />;
             case 'bond': return <Layers className="w-5 h-5 text-purple-500" />;
+            case 'bridge': return <Layers className="w-5 h-5 text-orange-500" />;
             case 'vlan': return <Split className="w-5 h-5 text-orange-500" />;
             default: return <Network className="w-5 h-5 text-emerald-500" />;
         }
@@ -356,6 +366,7 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                 <option value="ethernet">Ethernet</option>
                                 <option value="wifi">Wi-Fi</option>
                                 <option value="bond">Bond</option>
+                                <option value="bridge">Bridge</option>
                                 <option value="vlan">VLAN</option>
                             </select>
                         </div>
@@ -415,6 +426,44 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                                     <option value="balance-tlb">balance-tlb</option>
                                     <option value="balance-alb">balance-alb</option>
                                 </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bridge Configuration */}
+                    {data.type === 'bridge' && (
+                        <div className="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800 rounded-md space-y-4">
+                            <h4 className="text-sm font-bold text-orange-900 dark:text-orange-200">Bridge Configuration</h4>
+
+                            <div>
+                                <label className="block text-xs font-medium text-orange-800 dark:text-orange-300 mb-2">Member Interfaces</label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {existingInterfaces.map(ifaceName => (
+                                        <label key={ifaceName} className="flex items-center gap-2 cursor-pointer p-2 border border-orange-200 dark:border-orange-800 rounded bg-white dark:bg-zinc-900">
+                                            <input
+                                                type="checkbox"
+                                                checked={(data.bridge_interfaces || []).includes(ifaceName)}
+                                                onChange={() => toggleBridgeInterface(ifaceName)}
+                                                className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                            />
+                                            <span className="text-sm text-zinc-700 dark:text-zinc-300">{ifaceName}</span>
+                                        </label>
+                                    ))}
+                                    {existingInterfaces.length === 0 && (
+                                        <p className="text-xs text-zinc-500 col-span-3">No other interfaces available to bridge.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id={`stp-${data.id}`}
+                                    checked={data.bridge_stp || false}
+                                    onChange={(e) => handleChange('bridge_stp', e.target.checked)}
+                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                />
+                                <label htmlFor={`stp-${data.id}`} className="text-sm text-zinc-700 dark:text-zinc-300">Enable STP (Spanning Tree Protocol)</label>
                             </div>
                         </div>
                     )}

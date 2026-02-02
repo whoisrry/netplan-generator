@@ -159,6 +159,18 @@ export const generateIfupdownConfig = (interfaces) => {
             lines.push(`    bond-updelay 200`);
         }
 
+        // Bridge Settings
+        if (iface.type === 'bridge') {
+            if (iface.bridge_interfaces && iface.bridge_interfaces.length > 0) {
+                lines.push(`    bridge_ports ${iface.bridge_interfaces.join(' ')}`);
+            } else {
+                lines.push(`    bridge_ports none`);
+            }
+            if (iface.bridge_stp !== undefined) {
+                lines.push(`    bridge_stp ${iface.bridge_stp ? 'on' : 'off'}`);
+            }
+        }
+
         // VLAN Settings
         if (iface.type === 'vlan') {
             if (iface.vlan_link) {

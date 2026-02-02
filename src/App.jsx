@@ -27,7 +27,10 @@ function App() {
       nameservers6: [],
       wifi: { ssid: '', password: '' },
       bond_interfaces: [],
+
       bond_mode: 'active-backup',
+      bridge_interfaces: [],
+      bridge_stp: false,
       vlan_id: null,
       vlan_link: '',
       routes: []
@@ -52,6 +55,7 @@ function App() {
     let name = '';
     if (type === 'ethernet') name = `eth${interfaces.filter(i => i.type === 'ethernet').length}`;
     if (type === 'bond') name = `bond${interfaces.filter(i => i.type === 'bond').length}`;
+    if (type === 'bridge') name = `br${interfaces.filter(i => i.type === 'bridge').length}`;
     if (type === 'vlan') name = `vlan${interfaces.filter(i => i.type === 'vlan').length}`;
 
     const newIface = {
@@ -72,7 +76,10 @@ function App() {
       nameservers6: [],
       wifi: { ssid: '', password: '' },
       bond_interfaces: [],
+
       bond_mode: 'active-backup',
+      bridge_interfaces: [],
+      bridge_stp: false,
       vlan_id: null,
       vlan_link: '',
       routes: []
@@ -185,11 +192,18 @@ function App() {
                 >
                   <Plus className="w-4 h-4" /> Ethernet
                 </button>
+
                 <button
                   onClick={() => addInterface('bond')}
-                  className="flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
+                  className="flex items-center gap-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition"
                 >
                   <Plus className="w-4 h-4" /> Bond
+                </button>
+                <button
+                  onClick={() => addInterface('bridge')}
+                  className="flex items-center gap-1 text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 transition"
+                >
+                  <Plus className="w-4 h-4" /> Bridge
                 </button>
                 <button
                   onClick={() => addInterface('vlan')}
@@ -290,8 +304,8 @@ function App() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
 
