@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Download, Copy, Check, FileText } from 'lucide-react';
 import InterfaceForm from './components/InterfaceForm';
+import ThemeToggle from './components/ThemeToggle';
 import { generateNetplanYaml, OS_OPTIONS } from './utils/netplan';
 import { generateIfupdownConfig } from './utils/ifupdown';
 
@@ -128,8 +129,11 @@ function App() {
             </div>
             <h1 className="font-bold text-xl tracking-tight">Netplan Generator</h1>
           </div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400">
-            Generates Network Configuration
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block text-sm text-zinc-500 dark:text-zinc-400">
+              Generates Network Configuration
+            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
