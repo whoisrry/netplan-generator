@@ -386,6 +386,20 @@ const InterfaceForm = ({ data, onChange, onDelete, expanded, onToggleExpand, exi
                         />
                     </div>
 
+                    {/* Comment */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Comment (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={data.comment || ''}
+                            onChange={(e) => handleChange('comment', e.target.value)}
+                            placeholder="e.g. 1G network, Bridge to Internet"
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                        />
+                    </div>
+
                     {/* Bond Configuration */}
                     {data.type === 'bond' && (
                         <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800 rounded-md space-y-4">

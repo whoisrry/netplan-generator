@@ -41,7 +41,6 @@ export const generateIfupdownConfig = (interfaces) => {
     interfaces.forEach(iface => {
         if (!iface.name) return;
 
-        lines.push(`# ${iface.name} - ${iface.type}`);
         lines.push(`auto ${iface.name}`);
 
         // --- IPv4 Configuration ---
@@ -184,6 +183,11 @@ export const generateIfupdownConfig = (interfaces) => {
             if (iface.wifi.password) {
                 lines.push(`    wpa-psk ${iface.wifi.password}`);
             }
+        }
+
+        // Comment at the end
+        if (iface.comment && iface.comment.trim()) {
+            lines.push(`#${iface.comment}`);
         }
 
         lines.push(``);

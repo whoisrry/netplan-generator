@@ -34,7 +34,8 @@ function App() {
       bridge_stp: false,
       vlan_id: null,
       vlan_link: '',
-      routes: []
+      routes: [],
+      comment: ''
     }
   ]);
   const [expandedId, setExpandedId] = useState("init_1");
@@ -83,7 +84,8 @@ function App() {
       bridge_stp: false,
       vlan_id: null,
       vlan_link: '',
-      routes: []
+      routes: [],
+      comment: ''
     };
     setInterfaces([...interfaces, newIface]);
     setExpandedId(newId);

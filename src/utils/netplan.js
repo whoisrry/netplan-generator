@@ -185,7 +185,20 @@ export const generateNetplanYaml = (osId, interfaces) => {
     if (Object.keys(network.bridges).length === 0) delete network.bridges;
     if (Object.keys(network.vlans).length === 0) delete network.vlans;
 
-    const yamlContent = yaml.dump({ network }, { indent: 2, noRefs: true });
+    let yamlContent = yaml.dump({ network }, { indent: 2, noRefs: true });
+
+    // Post-process to add comments
+    interfaces.forEach(iface => {
+        if (iface.comment && iface.comment.trim() && iface.name) {
+            // Find the interface block and add comment after it
+            // Look for the interface name followed by a colon (e.g., "  eth0:")
+            const interfacePattern = new RegExp(`(\\s+${iface.name}:.*?)(\\n(?=\\s{0,2}\\S)|$)`, 's');
+            yamlContent = yamlContent.replace(interfacePattern, (match, block, ending) => {
+                // Add comment before the ending
+                return `${block}\n    # ${iface.comment}${ending}`;
+            });
+        }
+    });
 
     const dateStr = new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: '2-digit', day: '2-digit'
