@@ -190,13 +190,10 @@ export const generateNetplanYaml = (osId, interfaces) => {
     // Post-process to add comments
     interfaces.forEach(iface => {
         if (iface.comment && iface.comment.trim() && iface.name) {
-            // Find the interface block and add comment after it
-            // Look for the interface name followed by a colon (e.g., "  eth0:")
-            const interfacePattern = new RegExp(`(\\s+${iface.name}:.*?)(\\n(?=\\s{0,2}\\S)|$)`, 's');
-            yamlContent = yamlContent.replace(interfacePattern, (match, block, ending) => {
-                // Add comment before the ending
-                return `${block}\n    # ${iface.comment}${ending}`;
-            });
+            // Find the interface name line and add comment right after it
+            // Pattern: "    eth0:" followed by newline
+            const interfacePattern = new RegExp(`(\\s{4}${iface.name}:)\\n`, 'g');
+            yamlContent = yamlContent.replace(interfacePattern, `$1\n      # ${iface.comment}\n`);
         }
     });
 
